@@ -8,7 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 def scrape_all():
     # Initiate headless driver for deployment
-    executable_path = {'executable_path': '/opt/homebrew/bin/chromedriver'}
+    executable_path = {'executable_path': ChromeDriverManager().install()}
     browser = Browser('chrome', **executable_path, headless=True)
 
     news_title, news_paragraph = mars_news(browser)
@@ -19,7 +19,8 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
+        "last_modified": dt.datetime.now(),
+        "hemispheres": hemispheres(browser)
     }
 
     # Stop webdriver and return data
@@ -96,6 +97,25 @@ def mars_facts():
 
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
+
+def hemispheres(browser):
+    url = 'https://data-class-mars-hemispheres.s3.amazonaws.com/Mars_Hemispheres/index.html'
+    browser.visit(url)
+
+    hemisphere_image_urls = []
+
+    images = browser.find_by_css('a.product-item img')
+
+    for i in range(len(images)):
+        hemispheres = {}
+        browser.find_by_css('a.product-item img')[i].click()
+        hemispheres['img_url'] = browser.find_by_text('Sample')[0]['href']
+        hemispheres['title'] = browser.find_by_css('h2.title').text
+        hemisphere_image_urls.append(hemispheres)
+        browser.back()
+
+    return hemisphere_image_urls
+
 
 if __name__ == "__main__":
 
